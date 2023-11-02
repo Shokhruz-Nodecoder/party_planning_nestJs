@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreatePartyDto } from './dto/create-party.dto';
 import { UpdatePartyDto } from './dto/update-party.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -12,7 +16,7 @@ export class PartyService {
     private readonly partyRepository: Repository<Party>,
   ) {}
 
-  async create(createPartyDto: CreatePartyDto, id : number) {
+  async create(createPartyDto: CreatePartyDto, id: number) {
     const isExist = await this.partyRepository.findBy({
       user: { id },
       title: createPartyDto.title,
@@ -31,19 +35,40 @@ export class PartyService {
     return await this.partyRepository.save(newParty);
   }
 
-  findAll() {
-    return `This action returns all party`;
+  async findAll(id: number) {
+    return this.partyRepository.find({ where: { user: { id } } });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} party`;
+  async findOne(id: number) {
+    const party = await this.partyRepository.findOne({
+      where: { id },
+      relations: {
+        user: true,
+      },
+    });
+
+    if (!party) throw new NotFoundException('Party not found');
+
+    return party;
   }
 
-  update(id: number, updatePartyDto: UpdatePartyDto) {
-    return `This action updates a #${id} party`;
+  async update(id: number, updatePartyDto: UpdatePartyDto) {
+    const party = await this.partyRepository.findOne({
+      where: { id },
+    });
+
+    if (!party) throw new NotFoundException('Party not found!');
+
+    return await this.partyRepository.update(id, updatePartyDto);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} party`;
+  async remove(id: number) {
+    const party = await this.partyRepository.findOne({
+      where: { id },
+    });
+
+    if (!party) throw new NotFoundException('Party not found!');
+
+    return await this.partyRepository.delete(id);
   }
 }
